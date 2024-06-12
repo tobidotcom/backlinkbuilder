@@ -144,4 +144,13 @@ def send_outreach_email(domain_data, outreach_subject, outreach_email, selected_
             success_count += 1
             smtp.quit()
             st.success(f"Email sent successfully using SMTP configuration: {smtp_config['server']}, {smtp_config['username']}")
-        except
+        except Exception as e:
+            st.error(f"Error sending email using SMTP configuration: {smtp_config['server']}, {smtp_config['username']}: {e}")
+
+    if success_count == 0:
+        st.warning("Email could not be sent using any of the provided SMTP configurations.")
+
+if st.button("Scrape Domains"):
+    st.session_state.domain_data = scrape_domains(domains)
+
+show_domain_data()
