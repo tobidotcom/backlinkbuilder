@@ -22,7 +22,15 @@ def show_settings():
 
     st.sidebar.subheader("User Information")
     for key, label in st.session_state.user_info.items():
-        st.session_state.user_info[key] = st.sidebar.text_input(label, st.session_state.user_info[key], key=f"user_info_{key}")
+        placeholder = {
+            "name": "John Doe",
+            "business_name": "Acme Inc.",
+            "website": "https://example.com",
+            "business_description": "We provide top-notch software solutions.",
+            "email": "john@example.com",
+            "phone_number": "+1 (555) 123-4567"
+        }.get(key, "")
+        st.session_state.user_info[key] = st.sidebar.text_input(label, st.session_state.user_info[key], placeholder=placeholder, key=f"user_info_{key}")
 
     st.sidebar.subheader("SMTP Configurations")
     smtp_configs = st.session_state.smtp_configs.copy()
@@ -154,4 +162,3 @@ if st.button("Scrape Domains"):
     st.session_state.domain_data = scrape_domains(domains)
 
 show_domain_data()
-
