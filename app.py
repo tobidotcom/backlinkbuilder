@@ -132,8 +132,7 @@ def show_domain_data():
                 outreach_subject = st.text_input(f"Subject for {data['domain']}", f"Backlink Opportunity for {data['domain']}", key=f"subject_{data['domain']}")
                 outreach_email = st.text_area(f"Outreach Email for {data['domain']}", data["outreach_email"], height=200, key=f"outreach_email_{data['domain']}")
                 selected_email = st.text_input(f"Email to send outreach for {data['domain']}", data["suggested_email"], key=f"selected_email_{data['domain']}")
-                send_email = st.checkbox(f"Send Email for {data['domain']}", key=f"send_email_{data['domain']}")
-                if send_email:
+                if st.button(f"Send Email for {data['domain']}", key=f"send_email_{data['domain']}"):
                     domains_to_email.append({
                         "domain": data["domain"],
                         "outreach_subject": outreach_subject,
@@ -145,6 +144,7 @@ def show_domain_data():
 
     if st.button("Send Emails"):
         send_outreach_emails(domains_to_email)
+        domains_to_email = []
 
 def send_outreach_emails(domains_to_email):
     for domain_data in domains_to_email:
