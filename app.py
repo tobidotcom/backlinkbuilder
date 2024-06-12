@@ -6,6 +6,8 @@ import logging
 from urllib.parse import urlparse, urljoin
 import smtplib
 from email.mime.text import MIMEText
+import time
+import socket
 
 # Initialize session state variables
 st.session_state.setdefault('openai_api_key', "")
@@ -13,6 +15,8 @@ st.session_state.setdefault('smtp_configs', [])
 st.session_state.setdefault('domain_data', [])
 st.session_state.setdefault('user_info', {
     "name": "", "business_name": "", "website": "", "business_description": "", "email": "", "phone_number": ""})
+st.session_state.setdefault('last_request_time', 0)
+st.session_state.setdefault('request_interval', 1)  # 1 second between requests
 
 def show_settings():
     st.sidebar.title("Settings")
@@ -48,6 +52,8 @@ def show_settings():
                     st.success(f"Configuration {i+1} is valid.")
                 except smtplib.SMTPAuthenticationError:
                     st.error(f"Authentication failed for Configuration {i+1}.")
+                except socket.gaierror as e:
+                    st.error(f"Error resolving SMTP server address for Configuration {i+1}: {e}")
                 except Exception as e:
                     st.error(f"Error checking Configuration {i+1}: {e}")
     
@@ -69,7 +75,9 @@ def scrape_domains(domains):
             response.raise_for_status()
             soup = BeautifulSoup(response.text, "html.parser")
             domain_name = urlparse(url).netloc
-            page_title, meta_description = soup.find("title").get_text(), soup.find("meta", attrs={"name":"description"}).get("content", "")
+            page_title, meta_description = soup.find("title").get_text(), ""
+            meta_description_tag = soup.find("meta", attrs={"name":"description"})
+            meta_description = meta_description_tag.get("content", "") if meta_description_tag else ""
             main_text = " ".join([p.get_text() for p in soup.find_all("p")])
             
             emails = set(re.findall(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", response.text))
@@ -91,25 +99,42 @@ def scrape_domains(domains):
             Title: {page_title}
             Description: {meta_description}
             Main Text: {main_text[:500]}...
-            Craft a personalized email outreach for a backlink opportunity. 
-            The email should be friendly, engaging, and highlight the relevance of the website's content to our business. 
-            Keep the email concise and actionable.
-            Additionally, please include a signature with the following details:
-            Name: {st.session_state.user_info['name']}
-            Business Name: {st.session_state.user_info['business_name']}
-            Website: {st.session_state.user_info['website']}
-            Business Description: {st.session_state.user_info['business_description']}
+
+            Craft a personalized and engaging email outreach for a backlink opportunity. Highlight the relevance of the website's content to our business and how a backlink could benefit both parties. Keep the email concise, friendly, and actionable.
+
+            Please include a signature with the following details:
+
+            {st.session_state.user_info['name']}
+            {st.session_state.user_info['business_name']}
+            {st.session_state.user_info['website']}
+            {st.session_state.user_info['business_description']}
             Email: {st.session_state.user_info['email']}
-            Phone Number: {st.session_state.user_info['phone_number']}
+            Phone: {st.session_state.user_info['phone_number']}
             """
             headers = {"Content-Type": "application/json", "Authorization": f"Bearer {st.session_state.openai_api_key}"}
             data = {"model": "gpt-3.5-turbo", "messages": [{"role": "user", "content": prompt}], "max_tokens": 500, "n": 1, "stop": None, "temperature": 0.7}
+            
+            # Rate limiting
+            current_time = time.time()
+            time_since_last_request = current_time - st.session_state.last_request_time
+            if time_since_last_request < st.session_state.request_interval:
+                time.sleep(st.session_state.request_interval - time_since_last_request)
+            st.session_state.last_request_time = time.time()
+
             response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=data)
             response.raise_for_status()
             outreach_email = response.json()["choices"][0]["message"]["content"].strip()
 
             email_prompt = f"Here are the email addresses found on the website {domain_name}:\n\n{', '.join(emails)}\n\nBased on the website content and the personalized outreach email, which email address would be the most appropriate to send the outreach to? Please make sure to only respond with the suggested email, nothing else!"
             email_data = {"model": "gpt-3.5-turbo", "messages": [{"role": "user", "content": email_prompt}, {"role": "assistant", "content": outreach_email}], "max_tokens": 100, "n": 1, "stop": None, "temperature": 0.7}
+            
+            # Rate limiting
+            current_time = time.time()
+            time_since_last_request = current_time - st.session_state.last_request_time
+            if time_since_last_request < st.session_state.request_interval:
+                time.sleep(st.session_state.request_interval - time_since_last_request)
+            st.session_state.last_request_time = time.time()
+
             email_response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=email_data)
             email_response.raise_for_status()
             suggested_email = email_response.json()["choices"][0]["message"]["content"].strip()
