@@ -16,20 +16,20 @@ st.session_state.setdefault('user_info', {
 
 def show_settings():
     st.sidebar.title("Settings")
-    openai_api_key = st.sidebar.text_input("OpenAI API Key", st.session_state.openai_api_key, type="password")
+    openai_api_key = st.sidebar.text_input("OpenAI API Key", st.session_state.openai_api_key, type="password", key="openai_api_key")
     if openai_api_key != st.session_state.openai_api_key:
         st.session_state.openai_api_key = openai_api_key
 
     st.sidebar.subheader("User Information")
     for key, label in st.session_state.user_info.items():
-        st.session_state.user_info[key] = st.sidebar.text_input(label, st.session_state.user_info[key])
+        st.session_state.user_info[key] = st.sidebar.text_input(label, st.session_state.user_info[key], key=f"user_info_{key}")
 
     st.sidebar.subheader("SMTP Configurations")
     smtp_configs = st.session_state.smtp_configs.copy()
     for i, config in enumerate(smtp_configs):
         with st.sidebar.expander(f"Configuration {i+1}"):
             for key in config:
-                config[key] = st.text_input(f"{key.capitalize()} {i+1}", config[key], type="password" if key == "password" else "default")
+                config[key] = st.text_input(f"{key.capitalize()} {i+1}", config[key], type="password" if key == "password" else "default", key=f"smtp_config_{i}_{key}")
 
             if st.button(f"Check Configuration {i+1}", key=f"check_config_{i}"):
                 try:
@@ -44,7 +44,7 @@ def show_settings():
                     st.error(f"Error checking Configuration {i+1}: {e}")
     
     st.session_state.smtp_configs = smtp_configs
-    if st.sidebar.button("Add SMTP Configuration"):
+    if st.sidebar.button("Add SMTP Configuration", key="add_smtp_config"):
         st.session_state.smtp_configs.append({"server": "", "port": 587, "username": "", "password": "", "sender_email": ""})
 
 st.set_page_config(page_title="Domain Scraper", layout="wide")
@@ -154,3 +154,4 @@ if st.button("Scrape Domains"):
     st.session_state.domain_data = scrape_domains(domains)
 
 show_domain_data()
+
