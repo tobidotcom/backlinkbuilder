@@ -13,6 +13,7 @@ st.session_state.setdefault('smtp_configs', [])
 st.session_state.setdefault('domain_data', [])
 st.session_state.setdefault('user_info', {
     "name": "", "business_name": "", "website": "", "business_description": "", "email": "", "phone_number": ""})
+st.session_state.setdefault('emails_sent', {})
 
 def show_settings():
     st.sidebar.title("Settings")
@@ -132,7 +133,8 @@ def show_domain_data():
                 outreach_subject = st.text_input(f"Subject for {data['domain']}", f"Backlink Opportunity for {data['domain']}", key=f"subject_{data['domain']}")
                 outreach_email = st.text_area(f"Outreach Email for {data['domain']}", data["outreach_email"], height=200, key=f"outreach_email_{data['domain']}")
                 selected_email = st.text_input(f"Email to send outreach for {data['domain']}", data["suggested_email"], key=f"selected_email_{data['domain']}")
-                if st.button(f"Send Email for {data['domain']}", key=f"send_email_{data['domain']}"):
+                send_email = st.checkbox(f"Send Email for {data['domain']}", value=st.session_state.emails_sent.get(data["domain"], False), key=f"send_email_{data['domain']}")
+                if send_email and not st.session_state.emails_sent.get(data["domain"], False):
                     domains_to_email.append({
                         "domain": data["domain"],
                         "outreach_subject": outreach_subject,
@@ -144,11 +146,11 @@ def show_domain_data():
 
     if st.button("Send Emails"):
         send_outreach_emails(domains_to_email)
-        domains_to_email = []
 
 def send_outreach_emails(domains_to_email):
     for domain_data in domains_to_email:
         send_outreach_email(domain_data["domain"], domain_data["outreach_subject"], domain_data["outreach_email"], domain_data["selected_email"])
+        st.session_state.emails_sent[domain_data["domain"]] = True
 
 def send_outreach_email(domain_name, outreach_subject, outreach_email, selected_email):
     success_count = 0
