@@ -175,4 +175,3 @@ if st.button("Scrape Domains"):
     st.session_state.domain_data = scrape_domains(domains)
 
 show_domain_data()
-
