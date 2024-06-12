@@ -125,7 +125,6 @@ def scrape_domains(domains):
     return domain_data
 
 def show_domain_data():
-    domains_to_email = []
     if st.session_state.domain_data:
         cols = st.columns(3)
         for i, data in enumerate(st.session_state.domain_data):
@@ -133,24 +132,12 @@ def show_domain_data():
                 outreach_subject = st.text_input(f"Subject for {data['domain']}", f"Backlink Opportunity for {data['domain']}", key=f"subject_{data['domain']}")
                 outreach_email = st.text_area(f"Outreach Email for {data['domain']}", data["outreach_email"], height=200, key=f"outreach_email_{data['domain']}")
                 selected_email = st.text_input(f"Email to send outreach for {data['domain']}", data["suggested_email"], key=f"selected_email_{data['domain']}")
-                send_email = st.checkbox(f"Send Email for {data['domain']}", value=st.session_state.emails_sent.get(data["domain"], False), key=f"send_email_{data['domain']}")
+                send_email = st.button(f"Send Email for {data['domain']}", key=f"send_email_{data['domain']}")
                 if send_email and not st.session_state.emails_sent.get(data["domain"], False):
-                    domains_to_email.append({
-                        "domain": data["domain"],
-                        "outreach_subject": outreach_subject,
-                        "outreach_email": outreach_email,
-                        "selected_email": selected_email
-                    })
+                    send_outreach_email(data["domain"], outreach_subject, outreach_email, selected_email)
+                    st.session_state.emails_sent[data["domain"]] = True
     else:
         st.warning("No domain data available. Please scrape some domains first.")
-
-    if st.button("Send Emails"):
-        send_outreach_emails(domains_to_email)
-
-def send_outreach_emails(domains_to_email):
-    for domain_data in domains_to_email:
-        send_outreach_email(domain_data["domain"], domain_data["outreach_subject"], domain_data["outreach_email"], domain_data["selected_email"])
-        st.session_state.emails_sent[domain_data["domain"]] = True
 
 def send_outreach_email(domain_name, outreach_subject, outreach_email, selected_email):
     success_count = 0
@@ -167,6 +154,7 @@ def send_outreach_email(domain_name, outreach_subject, outreach_email, selected_
             success_count += 1
             smtp.quit()
             st.success(f"Email sent successfully using SMTP configuration: {smtp_config['server']}, {smtp_config['username']}")
+            break  # Exit the loop after a successful email send
         except Exception as e:
             st.error(f"Error sending email using SMTP configuration: {smtp_config['server']}, {smtp_config['username']}: {e}")
 
