@@ -70,9 +70,12 @@ def scrape_domains(domains):
             response.raise_for_status()
             soup = BeautifulSoup(response.text, "html.parser")
             domain_name = urlparse(url).netloc
-            page_title, meta_description = soup.find("title").get_text(), soup.find("meta", attrs={"name":"description"}).get("content", "")
+            page_title = soup.find("title")
+            page_title = page_title.get_text() if page_title else ""
+            meta_description = soup.find("meta", attrs={"name": "description"})
+            meta_description = meta_description.get("content", "") if meta_description else ""
             main_text = " ".join([p.get_text() for p in soup.find_all("p")])
-            
+
             emails = set(re.findall(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", response.text))
             emails.update([link.get("href").replace("mailto:", "") for link in soup.find_all("a", href=re.compile(r"mailto:"))])
             for element in soup.find_all(text=re.compile(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"), recursive=True):
